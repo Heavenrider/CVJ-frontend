@@ -1,0 +1,130 @@
+@import "tailwindcss";
+
+:root {
+  --background: #FAF9F6; /* Ivory White */
+  --foreground: #0A0A0A; /* Luxury Black */
+  --card: #ffffff;
+  --card-foreground: #0A0A0A;
+  --popover: #ffffff;
+  --popover-foreground: #0A0A0A;
+  --border: #E8C76A; /* Champagne Gold border */
+  --input: #FAF9F6;
+  --primary: #6D001A; /* Royal Burgundy */
+  --primary-foreground: #FAF9F6;
+  --accent: #D4AF37; /* Gold */
+  --accent-foreground: #0A0A0A;
+}
+
+.dark {
+  --background: #0A0A0A; /* Luxury Black */
+  --foreground: #FAF9F6; /* Ivory White */
+  --card: #141414;
+  --card-foreground: #FAF9F6;
+  --popover: #141414;
+  --popover-foreground: #FAF9F6;
+  --border: #6D001A;
+  --input: #1a1a1a;
+  --primary: #D4AF37; /* Gold */
+  --primary-foreground: #0A0A0A;
+  --accent: #6D001A; /* Burgundy */
+  --accent-foreground: #FAF9F6;
+}
+
+@theme {
+  --color-primary-gold: #D4AF37;
+  --color-royal-burgundy: #6D001A;
+  --color-champagne-gold: #E8C76A;
+  --color-ivory-white: #FAF9F6;
+  --color-luxury-black: #0A0A0A;
+  
+  --font-playfair: var(--font-playfair), serif;
+  --font-cormorant: var(--font-cormorant), serif;
+  --font-poppins: var(--font-poppins), sans-serif;
+  --font-montserrat: var(--font-montserrat), sans-serif;
+  
+  --animate-shimmer: shimmer 2.5s infinite linear;
+  --animate-gold-glow: gold-glow 2s infinite ease-in-out;
+  --animate-float: float 4s ease-in-out infinite;
+  --animate-pulse-slow: pulse 3s cubic-bezier(0.4, 0, 0.6, 1) infinite;
+  
+  @keyframes shimmer {
+    0% {
+      background-position: -200% 0;
+    }
+    100% {
+      background-position: 200% 0;
+    }
+  }
+  @keyframes gold-glow {
+    0%, 100% {
+      box-shadow: 0 0 5px rgba(212, 175, 55, 0.2), 0 0 10px rgba(212, 175, 55, 0.1);
+    }
+    50% {
+      box-shadow: 0 0 15px rgba(212, 175, 55, 0.6), 0 0 25px rgba(212, 175, 55, 0.3);
+    }
+  }
+  @keyframes float {
+    0%, 100% {
+      transform: translateY(0px);
+    }
+    50% {
+      transform: translateY(-8px);
+    }
+  }
+}
+
+body {
+  background-color: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-poppins);
+  overflow-x: hidden;
+}
+
+/* Custom Scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+::-webkit-scrollbar-track {
+  background: #0A0A0A;
+}
+::-webkit-scrollbar-thumb {
+  background: linear-gradient(180deg, #6D001A 0%, #D4AF37 100%);
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: linear-gradient(180deg, #D4AF37 0%, #E8C76A 100%);
+}
+
+/* Shimmer utility */
+.shimmer-text {
+  background: linear-gradient(
+    to right,
+    #D4AF37 20%,
+    #FAF9F6 40%,
+    #E8C76A 60%,
+    #D4AF37 80%
+  );
+  background-size: 200% auto;
+  color: transparent;
+  background-clip: text;
+  -webkit-background-clip: text;
+  animation: shimmer 4s linear infinite;
+}
+
+/* Luxury button gradient */
+.gold-gradient-bg {
+  background: linear-gradient(135deg, #D4AF37 0%, #E8C76A 50%, #B89020 100%);
+}
+
+.burgundy-gradient-bg {
+  background: linear-gradient(135deg, #6D001A 0%, #8E0A28 50%, #4B0010 100%);
+}
+
+.gold-border {
+  border-image: linear-gradient(to right, #D4AF37, #E8C76A, #B89020) 1;
+}
+
+/* Smooth Scrolling */
+html {
+  scroll-behavior: smooth;
+}
