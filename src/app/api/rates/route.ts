@@ -1,6 +1,10 @@
 import { NextResponse } from "next/server";
 import { db, checkDbConnection } from "@/lib/db";
 
+// Force dynamic rendering — never cache this route on Vercel's edge
+export const dynamic = "force-dynamic";
+export const revalidate = 0;
+
 // Base Indian bullion spot values (per gram) for simulation fallbacks
 const BASE_24K_GOLD = 7450;
 const BASE_22K_GOLD = 6830;
@@ -76,7 +80,7 @@ export async function GET() {
             "x-access-token": key,
             "Content-Type": "application/json"
           },
-          next: { revalidate: 300 }
+          cache: "no-store"
         });
 
         const silverRes = await fetch("https://www.goldapi.io/api/XAG/INR", {
@@ -84,7 +88,7 @@ export async function GET() {
             "x-access-token": key,
             "Content-Type": "application/json"
           },
-          next: { revalidate: 300 }
+          cache: "no-store"
         });
 
         if (goldRes.ok && silverRes.ok) {
