@@ -1,5 +1,6 @@
 import { NextResponse } from "next/server";
 import { db, checkDbConnection } from "@/lib/db";
+import { signToken } from "@/lib/jwt";
 import * as bcrypt from "bcryptjs";
 
 export async function POST(request: Request) {
@@ -13,70 +14,91 @@ export async function POST(request: Request) {
       );
     }
 
-    // Check if user exists (with mock fallback if DB is unconfigured)
-    let existingUser = null;
-    const isDbConnected = await checkDbConnection();
-    if (isDbConnected) {
-      try {
-        existingUser = await db.user.findUnique({
-          where: { email },
-        });
-      } catch (dbErr) {
-        console.warn("Signup database lookup failed, using bypass signup:", dbErr);
-      }
-    }
+    const cleanEmail = email.trim().toLowerCase();
+    const cleanPassword = password.trim();
 
-    if (existingUser) {
+    if (cleanPassword.length < 6) {
       return NextResponse.json(
-        { success: false, message: "Email is already registered" },
+        { success: false, message: "Password must be at least 6 characters" },
         { status: 400 }
       );
     }
 
-    // Hash password
-    const passwordHash = await bcrypt.hash(password, 10);
+    const isDbConnected = await checkDbConnection();
 
-    // Create user (with mock fallback if DB is unconfigured)
-    let newUser;
+    // ── Database-connected: real signup ──────────────────────────────
     if (isDbConnected) {
-      try {
-        newUser = await db.user.create({
-          data: {
-            name,
-            email,
-            passwordHash,
-            phone,
-            role: "CUSTOMER",
-          },
-        });
-      } catch (dbErr) {
-        console.warn("Signup database create failed, returning mock user:", dbErr);
-        newUser = {
-          id: "mock-user-id-" + Math.random().toString(36).substring(2, 9),
-          name,
-          email,
-          role: "CUSTOMER",
-        };
-      }
-    } else {
-      newUser = {
-        id: "mock-user-id-" + Math.random().toString(36).substring(2, 9),
-        name,
-        email,
-        role: "CUSTOMER",
-      };
-    }
+      const existingUser = await db.user.findUnique({ where: { email: cleanEmail } });
 
-    return NextResponse.json({
-      success: true,
-      message: "Registration successful",
-      user: {
+      if (existingUser) {
+        return NextResponse.json(
+          { success: false, message: "This email is already registered. Please sign in." },
+          { status: 400 }
+        );
+      }
+
+      const passwordHash = await bcrypt.hash(cleanPassword, 10);
+
+      const newUser = await db.user.create({
+        data: {
+          name: name.trim(),
+          email: cleanEmail,
+          passwordHash,
+          phone: phone?.trim() || null,
+          role: "CUSTOMER",
+        },
+      });
+
+      const token = signToken({
         id: newUser.id,
-        name: newUser.name,
         email: newUser.email,
         role: newUser.role,
-      },
+        name: newUser.name,
+      });
+
+      const response = NextResponse.json({
+        success: true,
+        message: "Account created successfully! Welcome to Sri Chakra Veeralakshmi Jewellery.",
+        user: { id: newUser.id, name: newUser.name, email: newUser.email, role: newUser.role },
+      });
+
+      response.cookies.set("auth_token", token, {
+        httpOnly: true,
+        secure: process.env.NODE_ENV === "production",
+        sameSite: "lax",
+        maxAge: 7 * 24 * 60 * 60,
+        path: "/",
+      });
+
+      return response;
+    }
+
+    // ── Database-offline: mock signup fallback ────────────────────────
+    const mockUser = {
+      id: "mock-user-" + Math.random().toString(36).substring(2, 9),
+      name: name.trim(),
+      email: cleanEmail,
+      role: "CUSTOMER" as const,
+    };
+
+    const token = signToken({ id: mockUser.id, email: mockUser.email, role: mockUser.role, name: mockUser.name });
+
+    const response = NextResponse.json({
+      success: true,
+      message: "Account created (Offline Mode — data not persisted)",
+      user: mockUser,
     });
+
+    response.cookies.set("auth_token", token, {
+      httpOnly: true,
+      secure: process.env.NODE_ENV === "production",
+      sameSite: "lax",
+      maxAge: 7 * 24 * 60 * 60,
+      path: "/",
+    });
+
+    return response;
+
   } catch (error: any) {
     console.error("Signup error:", error);
     return NextResponse.json(

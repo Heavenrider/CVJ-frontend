@@ -15,29 +15,30 @@ if (process.env.NODE_ENV !== "production") {
 
 export async function checkDbConnection(): Promise<boolean> {
   const now = Date.now();
-  
-  if (globalThis.dbConnected === true) {
+
+  // If we recently confirmed a good connection, trust it for 30 seconds
+  if (globalThis.dbConnected === true && globalThis.dbLastCheck && now - globalThis.dbLastCheck < 30000) {
     return true;
   }
-  
-  if (globalThis.dbConnected === false && globalThis.dbLastCheck && now - globalThis.dbLastCheck < 60000) {
+
+  // If we recently confirmed a failed connection, wait 5 minutes before retrying
+  if (globalThis.dbConnected === false && globalThis.dbLastCheck && now - globalThis.dbLastCheck < 300000) {
     return false;
   }
-  
+
   if (globalThis.dbCheckPromise) {
     return globalThis.dbCheckPromise;
   }
-  
+
   globalThis.dbLastCheck = now;
-  
+
   globalThis.dbCheckPromise = new Promise<boolean>(async (resolve) => {
     try {
-      // Race select 1 query against a 500ms timeout
-      const timeout = new Promise<void>((_, reject) => setTimeout(() => reject(new Error("Timeout")), 500));
-      await Promise.race([
-        db.$queryRawUnsafe("SELECT 1"),
-        timeout
-      ]);
+      // Race select 1 query against a 3000ms timeout (allows for Supabase cold starts)
+      const timeout = new Promise<void>((_, reject) =>
+        setTimeout(() => reject(new Error("Timeout")), 3000)
+      );
+      await Promise.race([db.$queryRawUnsafe("SELECT 1"), timeout]);
       globalThis.dbConnected = true;
       resolve(true);
     } catch (e) {
@@ -48,6 +49,6 @@ export async function checkDbConnection(): Promise<boolean> {
       globalThis.dbCheckPromise = undefined;
     }
   });
-  
+
   return globalThis.dbCheckPromise;
 }
