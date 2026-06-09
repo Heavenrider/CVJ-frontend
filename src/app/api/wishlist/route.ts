@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db, checkDbConnection } from "@/lib/db";
+import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/jwt";
+
+export const dynamic = "force-dynamic";
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -17,18 +19,11 @@ export async function GET() {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    const isDbConnected = await checkDbConnection();
-    let wishlist: any[] = [];
-
-    if (isDbConnected) {
-      wishlist = await db.wishlistItem.findMany({
-        where: { userId: session.id },
-        include: {
-          product: true,
-        },
-        orderBy: { createdAt: "desc" },
-      });
-    }
+    const wishlist = await db.wishlistItem.findMany({
+      where: { userId: session.id },
+      include: { product: true },
+      orderBy: { createdAt: "desc" },
+    });
 
     return NextResponse.json({ success: true, wishlist });
   } catch (error) {
@@ -49,32 +44,11 @@ export async function POST(request: Request) {
       return NextResponse.json({ success: false, message: "Product ID required" }, { status: 400 });
     }
 
-    const isDbConnected = await checkDbConnection();
-    let wishlistItem;
-
-    if (isDbConnected) {
-      wishlistItem = await db.wishlistItem.upsert({
-        where: {
-          userId_productId: {
-            userId: session.id,
-            productId,
-          },
-        },
-        update: {}, // Do nothing if it already exists
-        create: {
-          userId: session.id,
-          productId,
-        },
-      });
-    } else {
-      console.warn("Wishlist POST bypassed database because it is offline. Mock item returned.");
-      wishlistItem = {
-        id: "mock-wish-" + Math.random().toString(36).substring(2, 9),
-        userId: session.id,
-        productId,
-        createdAt: new Date().toISOString()
-      };
-    }
+    const wishlistItem = await db.wishlistItem.upsert({
+      where: { userId_productId: { userId: session.id, productId } },
+      update: {},
+      create: { userId: session.id, productId },
+    });
 
     return NextResponse.json({ success: true, message: "Added to wishlist", wishlistItem });
   } catch (error) {
@@ -97,15 +71,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: "Wishlist item ID required" }, { status: 400 });
     }
 
-    const isDbConnected = await checkDbConnection();
-    if (isDbConnected) {
-      await db.wishlistItem.delete({
-        where: { id: wishlistItemId, userId: session.id },
-      });
-    } else {
-      console.warn("Wishlist DELETE bypassed database because it is offline.");
-    }
-
+    await db.wishlistItem.delete({ where: { id: wishlistItemId, userId: session.id } });
     return NextResponse.json({ success: true, message: "Item removed from wishlist" });
   } catch (error) {
     console.error("Wishlist DELETE error:", error);

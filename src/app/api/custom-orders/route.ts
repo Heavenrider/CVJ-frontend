@@ -1,7 +1,9 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db, checkDbConnection } from "@/lib/db";
+import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/jwt";
+
+export const dynamic = "force-dynamic";
 
 async function getAuthUser() {
   const cookieStore = await cookies();
@@ -10,7 +12,7 @@ async function getAuthUser() {
   return verifyToken(token);
 }
 
-// GET: Admin fetches all custom requests
+// GET: Admin fetches all custom design requests
 export async function GET() {
   try {
     const cookieStore = await cookies();
@@ -23,30 +25,9 @@ export async function GET() {
       return NextResponse.json({ success: false, message: "Unauthorized admin access" }, { status: 403 });
     }
 
-    const isDbConnected = await checkDbConnection();
-    let customOrders = [];
-
-    if (isDbConnected) {
-      customOrders = await db.customOrder.findMany({
-        orderBy: { createdAt: "desc" }
-      });
-    } else {
-      customOrders = [
-        {
-          id: "mock-custom-1",
-          userId: "mock-customer-id",
-          name: "Dev Customer (Mock)",
-          phone: "9948625356",
-          email: "customer@srichakrajewellers.com",
-          description: "Custom bridal waist belt (Vaddanam) with peacock designs and ruby drop stones.",
-          metalType: "GOLD",
-          designImage: "/assets/silhouette-necklace.jpg",
-          status: "PENDING",
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString()
-        }
-      ];
-    }
+    const customOrders = await db.customOrder.findMany({
+      orderBy: { createdAt: "desc" },
+    });
 
     return NextResponse.json({ success: true, customOrders });
   } catch (error) {
@@ -55,36 +36,18 @@ export async function GET() {
   }
 }
 
-// POST: Customers submit a custom order brief
+// POST: Customer submits a custom design brief
 export async function POST(request: Request) {
   try {
     const user = await getAuthUser();
     const { name, phone, email, description, metalType, designImage } = await request.json();
 
     if (!name || !phone || !description || !metalType) {
-      return NextResponse.json({ success: false, message: "Missing required specifications" }, { status: 400 });
+      return NextResponse.json({ success: false, message: "Missing required fields: name, phone, description, metalType" }, { status: 400 });
     }
 
-    const isDbConnected = await checkDbConnection();
-    let customOrder;
-
-    if (isDbConnected) {
-      customOrder = await db.customOrder.create({
-        data: {
-          userId: user?.id || null,
-          name,
-          phone,
-          email,
-          description,
-          metalType,
-          designImage,
-          status: "PENDING"
-        }
-      });
-    } else {
-      console.warn("Custom order POST bypassed database because it is offline. Mock order returned.");
-      customOrder = {
-        id: "mock-custom-" + Math.random().toString(36).substring(2, 9),
+    const customOrder = await db.customOrder.create({
+      data: {
         userId: user?.id || null,
         name,
         phone,
@@ -93,24 +56,21 @@ export async function POST(request: Request) {
         metalType,
         designImage,
         status: "PENDING",
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString()
-      };
-    }
+      },
+    });
 
     return NextResponse.json({
       success: true,
       message: "Custom design request submitted successfully",
-      customOrder
+      customOrder,
     });
-
   } catch (error) {
     console.error("CustomOrders POST error:", error);
     return NextResponse.json({ success: false, message: "Server error submitting custom order" }, { status: 500 });
   }
 }
 
-// PUT: Admin updates status of custom request
+// PUT: Admin updates status of a custom request
 export async function PUT(request: Request) {
   try {
     const cookieStore = await cookies();
@@ -124,26 +84,14 @@ export async function PUT(request: Request) {
     }
 
     const { orderId, status } = await request.json();
-
     if (!orderId || !status) {
       return NextResponse.json({ success: false, message: "Order ID and status required" }, { status: 400 });
     }
 
-    const isDbConnected = await checkDbConnection();
-    let updated;
-
-    if (isDbConnected) {
-      updated = await db.customOrder.update({
-        where: { id: orderId },
-        data: { status }
-      });
-    } else {
-      updated = {
-        id: orderId,
-        status,
-        updatedAt: new Date().toISOString()
-      };
-    }
+    const updated = await db.customOrder.update({
+      where: { id: orderId },
+      data: { status },
+    });
 
     return NextResponse.json({ success: true, message: "Request status updated successfully", customOrder: updated });
   } catch (error) {

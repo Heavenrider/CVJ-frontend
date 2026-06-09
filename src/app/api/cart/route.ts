@@ -1,9 +1,10 @@
 import { NextResponse } from "next/server";
 import { cookies } from "next/headers";
-import { db, checkDbConnection } from "@/lib/db";
+import { db } from "@/lib/db";
 import { verifyToken } from "@/lib/jwt";
 
-// Helper to check user auth token
+export const dynamic = "force-dynamic";
+
 async function getAuthUser() {
   const cookieStore = await cookies();
   const token = cookieStore.get("auth_token")?.value;
@@ -18,21 +19,11 @@ export async function GET() {
       return NextResponse.json({ success: false, message: "Unauthorized" }, { status: 401 });
     }
 
-    let cartItems: any[] = [];
-    const isDbConnected = await checkDbConnection();
-    if (isDbConnected) {
-      try {
-        cartItems = await db.cartItem.findMany({
-          where: { userId: session.id },
-          include: {
-            product: true,
-          },
-          orderBy: { createdAt: "desc" },
-        });
-      } catch (dbErr) {
-        console.warn("Cart database fetch failed, loading empty cart:", dbErr);
-      }
-    }
+    const cartItems = await db.cartItem.findMany({
+      where: { userId: session.id },
+      include: { product: true },
+      orderBy: { createdAt: "desc" },
+    });
 
     return NextResponse.json({ success: true, cart: cartItems });
   } catch (error) {
@@ -55,55 +46,16 @@ export async function POST(request: Request) {
 
     const parsedQty = Number(quantity) || 1;
 
-    let cartItem;
-    const isDbConnected = await checkDbConnection();
-    if (isDbConnected) {
-      try {
-        // Check if product exists and check stock
-        const product = await db.product.findUnique({
-          where: { id: productId },
-        });
-
-        if (!product) {
-          return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });
-        }
-
-        // Upsert cart item
-        cartItem = await db.cartItem.upsert({
-          where: {
-            userId_productId: {
-              userId: session.id,
-              productId,
-            },
-          },
-          update: {
-            quantity: {
-              increment: parsedQty,
-            },
-          },
-          create: {
-            userId: session.id,
-            productId,
-            quantity: parsedQty,
-          },
-        });
-      } catch (dbErr) {
-        console.warn("Cart database upsert failed, returning mock success:", dbErr);
-        cartItem = {
-          id: "mock-cart-item-id",
-          userId: session.id,
-          productId,
-          quantity: parsedQty,
-        };
-      }
-    } else {
-      cartItem = {
-        id: "mock-cart-item-id",
-        userId: session.id,
-        productId,
-        quantity: parsedQty,
-      };
+    const product = await db.product.findUnique({ where: { id: productId } });
+    if (!product) {
+      return NextResponse.json({ success: false, message: "Product not found" }, { status: 404 });
     }
+
+    const cartItem = await db.cartItem.upsert({
+      where: { userId_productId: { userId: session.id, productId } },
+      update: { quantity: { increment: parsedQty } },
+      create: { userId: session.id, productId, quantity: parsedQty },
+    });
 
     return NextResponse.json({ success: true, message: "Added to cart", cartItem });
   } catch (error) {
@@ -125,37 +77,18 @@ export async function PUT(request: Request) {
     }
 
     const parsedQty = Number(quantity);
-    const isDbConnected = await checkDbConnection();
-    if (isDbConnected) {
-      try {
-        if (parsedQty <= 0) {
-          // Delete if quantity set to 0 or negative
-          await db.cartItem.delete({
-            where: { id: cartItemId, userId: session.id },
-          });
-          return NextResponse.json({ success: true, message: "Item removed from cart" });
-        }
 
-        const updated = await db.cartItem.update({
-          where: { id: cartItemId, userId: session.id },
-          data: { quantity: parsedQty },
-        });
-
-        return NextResponse.json({ success: true, message: "Cart updated", cartItem: updated });
-      } catch (dbErr) {
-        console.warn("Cart database PUT failed, mock success:", dbErr);
-      }
-    }
-
-    // Fallback/mock success response
     if (parsedQty <= 0) {
+      await db.cartItem.delete({ where: { id: cartItemId, userId: session.id } });
       return NextResponse.json({ success: true, message: "Item removed from cart" });
     }
-    return NextResponse.json({
-      success: true,
-      message: "Cart updated (Mock Mode)",
-      cartItem: { id: cartItemId, userId: session.id, quantity: parsedQty }
+
+    const updated = await db.cartItem.update({
+      where: { id: cartItemId, userId: session.id },
+      data: { quantity: parsedQty },
     });
+
+    return NextResponse.json({ success: true, message: "Cart updated", cartItem: updated });
   } catch (error) {
     console.error("Cart PUT error:", error);
     return NextResponse.json({ success: false, message: "Server error updating cart" }, { status: 500 });
@@ -176,17 +109,7 @@ export async function DELETE(request: Request) {
       return NextResponse.json({ success: false, message: "Cart item ID required" }, { status: 400 });
     }
 
-    const isDbConnected = await checkDbConnection();
-    if (isDbConnected) {
-      try {
-        await db.cartItem.delete({
-          where: { id: cartItemId, userId: session.id },
-        });
-      } catch (dbErr) {
-        console.warn("Cart database DELETE failed, mock success:", dbErr);
-      }
-    }
-
+    await db.cartItem.delete({ where: { id: cartItemId, userId: session.id } });
     return NextResponse.json({ success: true, message: "Item removed from cart" });
   } catch (error) {
     console.error("Cart DELETE error:", error);
