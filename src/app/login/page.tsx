@@ -29,9 +29,8 @@ export default function LoginPage() {
       const data = await res.json();
 
       if (res.ok && data.success) {
-        // Redirect to profile or previous page
-        router.push("/profile");
-        router.refresh();
+        // Hard navigation to clear any stale cookie/session state
+        window.location.href = "/profile";
       } else {
         setError(data.message || "Invalid credentials");
       }

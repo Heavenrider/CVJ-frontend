@@ -88,9 +88,17 @@ export default function ProfilePage() {
 
   const router = useRouter();
 
+  const [fetchError, setFetchError] = useState("");
+
   const fetchProfile = async () => {
     try {
+      setFetchError("");
       const res = await fetch("/api/auth/profile");
+      if (res.status === 401) {
+        // Not logged in at all — redirect to login
+        router.push("/login");
+        return;
+      }
       if (res.ok) {
         const data = await res.json();
         if (data.success) {
@@ -98,14 +106,15 @@ export default function ProfilePage() {
           setProfileName(data.user.name);
           setProfilePhone(data.user.phone || "");
         } else {
-          router.push("/login");
+          setFetchError(data.message || "Could not load profile.");
         }
       } else {
-        router.push("/login");
+        const data = await res.json().catch(() => ({}));
+        setFetchError(data.message || "Could not load your profile. Please log out and sign in again.");
       }
     } catch (err) {
       console.error(err);
-      router.push("/login");
+      setFetchError("Network error. Please check your connection.");
     } finally {
       setLoading(false);
     }
@@ -272,6 +281,26 @@ export default function ProfilePage() {
     return (
       <div className="min-h-screen bg-luxury-black flex items-center justify-center">
         <Loader2 className="w-10 h-10 text-primary-gold animate-spin" />
+      </div>
+    );
+  }
+
+  if (fetchError) {
+    return (
+      <div className="min-h-screen bg-luxury-black flex flex-col items-center justify-center gap-6 px-4">
+        <div className="w-full max-w-md bg-[#121212] border border-rose-500/25 rounded-sm p-8 text-center space-y-4">
+          <p className="font-playfair text-xl text-rose-400">Session Error</p>
+          <p className="font-poppins text-sm text-ivory-white/60">{fetchError}</p>
+          <button
+            onClick={async () => {
+              await fetch("/api/auth/logout", { method: "POST" });
+              router.push("/login");
+            }}
+            className="mt-4 px-6 py-3 bg-primary-gold text-luxury-black font-montserrat text-xs uppercase font-bold tracking-widest rounded-sm hover:bg-champagne-gold transition-colors"
+          >
+            Log Out &amp; Sign In Again
+          </button>
+        </div>
       </div>
     );
   }
