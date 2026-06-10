@@ -23,10 +23,11 @@ export default function Navbar() {
   const [user, setUser] = useState<any>(null);
   const [cartCount, setCartCount] = useState(0);
   const [wishCount, setWishCount] = useState(0);
+  const [dropdownOpen, setDropdownOpen] = useState(false);
 
   const fetchSessionData = async () => {
     try {
-      const res = await fetch("/api/auth/profile");
+      const res = await fetch("/api/auth/profile", { cache: "no-store" });
       if (res.ok) {
         const data = await res.json();
         if (data.success && data.user) {
@@ -36,8 +37,8 @@ export default function Navbar() {
           
           // Let's fetch the actual cart/wishlist lists in parallel
           const [resCart, resWish] = await Promise.all([
-            fetch("/api/cart"),
-            fetch("/api/wishlist")
+            fetch("/api/cart", { cache: "no-store" }),
+            fetch("/api/wishlist", { cache: "no-store" })
           ]);
           if (resCart.ok) {
             const cData = await resCart.json();
@@ -159,13 +160,65 @@ export default function Navbar() {
 
               {/* Auth Account Profile */}
               {user ? (
-                <Link
-                  href="/profile"
-                  className="flex items-center gap-2 font-montserrat text-xs uppercase font-semibold text-ivory-white/80 hover:text-primary-gold transition-colors"
-                >
-                  <User size={16} className="text-primary-gold" />
-                  <span className="max-w-[80px] truncate">{user.name.split(" ")[0]}</span>
-                </Link>
+                <div className="relative">
+                  <button
+                    onClick={() => setDropdownOpen(!dropdownOpen)}
+                    className="flex items-center gap-2 font-montserrat text-xs uppercase font-semibold text-ivory-white/80 hover:text-primary-gold transition-colors focus:outline-none cursor-pointer"
+                  >
+                    <User size={16} className="text-primary-gold" />
+                    <span className="max-w-[80px] truncate">{user.name.split(" ")[0]}</span>
+                  </button>
+
+                  <AnimatePresence>
+                    {dropdownOpen && (
+                      <>
+                        <div
+                          className="fixed inset-0 z-40"
+                          onClick={() => setDropdownOpen(false)}
+                        />
+                        <motion.div
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
+                          exit={{ opacity: 0, y: 10 }}
+                          className="absolute right-0 mt-3 w-48 bg-[#121212] border border-primary-gold/20 rounded-sm shadow-xl z-50 py-2 font-montserrat text-[11px] uppercase tracking-wider font-bold"
+                        >
+                          <Link
+                            href="/profile"
+                            onClick={() => setDropdownOpen(false)}
+                            className="block px-4 py-2.5 text-ivory-white/80 hover:text-primary-gold hover:bg-white/5 transition-all text-left"
+                          >
+                            Profile
+                          </Link>
+                          <Link
+                            href="/profile?tab=orders"
+                            onClick={() => setDropdownOpen(false)}
+                            className="block px-4 py-2.5 text-ivory-white/80 hover:text-primary-gold hover:bg-white/5 transition-all text-left"
+                          >
+                            My Orders
+                          </Link>
+                          <hr className="border-white/5 my-1" />
+                          <button
+                            onClick={async () => {
+                              setDropdownOpen(false);
+                              try {
+                                const res = await fetch("/api/auth/logout", { method: "POST" });
+                                if (res.ok) {
+                                  setUser(null);
+                                  window.location.href = "/login";
+                                }
+                              } catch (err) {
+                                console.error("Logout error:", err);
+                              }
+                            }}
+                            className="w-full text-left px-4 py-2.5 text-rose-400 hover:text-rose-300 hover:bg-rose-500/5 transition-all cursor-pointer font-bold"
+                          >
+                            Logout
+                          </button>
+                        </motion.div>
+                      </>
+                    )}
+                  </AnimatePresence>
+                </div>
               ) : (
                 <Link
                   href="/login"
@@ -222,22 +275,48 @@ export default function Navbar() {
                   </a>
                 ))}
 
-                {/* Mobile CTAs */}
-                <div className="pt-4 flex flex-col gap-3 w-full max-w-xs">
+                 {/* Mobile CTAs */}
+                <div className="pt-4 flex flex-col gap-2.5 w-full max-w-xs font-montserrat text-xs uppercase font-bold tracking-widest">
                   {user ? (
-                    <Link
-                      href="/profile"
-                      onClick={() => setIsOpen(false)}
-                      className="flex items-center justify-center gap-2 font-montserrat text-xs uppercase font-bold tracking-widest text-ivory-white border border-white/10 py-3.5 rounded-sm"
-                    >
-                      <User size={14} className="text-primary-gold" />
-                      <span>My Profile Panel</span>
-                    </Link>
+                    <>
+                      <Link
+                        href="/profile"
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center justify-center gap-2 text-ivory-white border border-white/10 py-3 rounded-sm hover:border-primary-gold transition-colors"
+                      >
+                        <User size={14} className="text-primary-gold" />
+                        <span>Profile</span>
+                      </Link>
+                      <Link
+                        href="/profile?tab=orders"
+                        onClick={() => setIsOpen(false)}
+                        className="flex items-center justify-center gap-2 text-ivory-white border border-white/10 py-3 rounded-sm hover:border-primary-gold transition-colors"
+                      >
+                        <span>My Orders</span>
+                      </Link>
+                      <button
+                        onClick={async () => {
+                          setIsOpen(false);
+                          try {
+                            const res = await fetch("/api/auth/logout", { method: "POST" });
+                            if (res.ok) {
+                              setUser(null);
+                              window.location.href = "/login";
+                            }
+                          } catch (err) {
+                            console.error("Logout error:", err);
+                          }
+                        }}
+                        className="w-full text-center text-rose-400 border border-rose-500/20 bg-rose-500/5 py-3 rounded-sm cursor-pointer"
+                      >
+                        Logout
+                      </button>
+                    </>
                   ) : (
                     <Link
                       href="/login"
                       onClick={() => setIsOpen(false)}
-                      className="flex items-center justify-center gap-2 font-montserrat text-xs uppercase font-bold tracking-widest text-luxury-black bg-primary-gold py-3.5 rounded-sm"
+                      className="flex items-center justify-center gap-2 text-luxury-black bg-primary-gold py-3.5 rounded-sm"
                     >
                       <span>Client Sign In</span>
                     </Link>

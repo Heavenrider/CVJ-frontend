@@ -1,7 +1,7 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { useRouter } from "next/navigation";
+import { useEffect, useState, Suspense } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { User, MapPin, Package, Heart, LogOut, Loader2, Plus, Trash2, Calendar, ShoppingCart, ShieldCheck, Printer, X, Home } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
@@ -72,10 +72,19 @@ interface UserData {
   wishlist: WishlistItem[];
 }
 
-export default function ProfilePage() {
+function ProfilePageContent() {
   const [activeTab, setActiveTab] = useState<"profile" | "addresses" | "orders" | "wishlist">("orders");
   const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
+
+  const searchParams = useSearchParams();
+  const tabParam = searchParams.get("tab");
+
+  useEffect(() => {
+    if (tabParam === "orders" || tabParam === "wishlist" || tabParam === "addresses" || tabParam === "profile") {
+      setActiveTab(tabParam);
+    }
+  }, [tabParam]);
 
   const printInvoice = () => {
     const printContent = document.getElementById("invoice-print-area");
@@ -111,7 +120,7 @@ export default function ProfilePage() {
   const fetchProfile = async () => {
     try {
       setFetchError("");
-      const res = await fetch("/api/auth/profile");
+      const res = await fetch("/api/auth/profile", { cache: "no-store" });
       if (res.status === 401) {
         // Not logged in at all — redirect to login
         router.push("/login");
@@ -1001,5 +1010,17 @@ export default function ProfilePage() {
 
       </div>
     </div>
+  );
+}
+
+export default function ProfilePage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-luxury-black flex items-center justify-center">
+        <Loader2 className="w-10 h-10 text-primary-gold animate-spin" />
+      </div>
+    }>
+      <ProfilePageContent />
+    </Suspense>
   );
 }
