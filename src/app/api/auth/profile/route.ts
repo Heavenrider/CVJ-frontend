@@ -33,6 +33,7 @@ export async function GET() {
         },
         orders: {
           include: {
+            address: true,
             items: {
               include: {
                 product: { select: { name: true, images: true } },

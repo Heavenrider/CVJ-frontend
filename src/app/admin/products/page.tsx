@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { Coins, Package, LogOut, LayoutDashboard, PlusCircle, FileText, Settings, HeartHandshake, Eye, Plus, Edit, Trash2, Loader2, Save, X } from "lucide-react";
+import { Coins, Package, LogOut, LayoutDashboard, PlusCircle, FileText, Settings, HeartHandshake, Eye, Plus, Edit, Trash2, Loader2, Save, X, CreditCard } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 
@@ -218,6 +218,13 @@ export default function AdminProductsPage() {
             >
               <FileText size={15} />
               <span>Customer Orders</span>
+            </Link>
+            <Link
+              href="/admin/payments"
+              className="flex items-center gap-3 px-4 py-3 text-ivory-white/70 hover:bg-white/5 rounded-sm transition-all"
+            >
+              <CreditCard size={15} />
+              <span>Payment Panel</span>
             </Link>
             <Link
               href="/admin/custom-orders"

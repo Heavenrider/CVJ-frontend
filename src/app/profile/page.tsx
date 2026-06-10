@@ -2,8 +2,8 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, MapPin, Package, Heart, LogOut, Loader2, Plus, Trash2, Calendar, ShoppingCart, ShieldCheck } from "lucide-react";
-import { motion } from "framer-motion";
+import { User, MapPin, Package, Heart, LogOut, Loader2, Plus, Trash2, Calendar, ShoppingCart, ShieldCheck, Printer, X } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
 
@@ -26,6 +26,7 @@ interface OrderItem {
   quantity: number;
   pricePerUnit: number;
   weightPerUnit: number;
+  metalRateUsed: number;
   product: {
     name: string;
     images: string[];
@@ -38,6 +39,11 @@ interface Order {
   paymentMethod: "COD" | "RAZORPAY" | "UPI";
   paymentStatus: "PENDING" | "COMPLETED" | "FAILED";
   total: number;
+  subtotal: number;
+  makingCharges: number;
+  gst: number;
+  shipping: number;
+  address: Address;
   createdAt: string;
   items: OrderItem[];
 }
@@ -68,7 +74,19 @@ interface UserData {
 
 export default function ProfilePage() {
   const [activeTab, setActiveTab] = useState<"profile" | "addresses" | "orders" | "wishlist">("orders");
+  const [selectedInvoiceOrder, setSelectedInvoiceOrder] = useState<Order | null>(null);
   const [userData, setUserData] = useState<UserData | null>(null);
+
+  const printInvoice = () => {
+    const printContent = document.getElementById("invoice-print-area");
+    if (!printContent) return;
+    
+    const originalContent = document.body.innerHTML;
+    document.body.innerHTML = printContent.innerHTML;
+    window.print();
+    document.body.innerHTML = originalContent;
+    window.location.reload();
+  };
   const [loading, setLoading] = useState(true);
   const [profileName, setProfileName] = useState("");
   const [profilePhone, setProfilePhone] = useState("");
@@ -478,10 +496,32 @@ export default function ProfilePage() {
                                   </div>
                                 ))}
                               </div>
+
+                              {/* Invoice download link */}
+                              <div className="flex justify-end pt-4 border-t border-white/5 mt-4">
+                                <button
+                                  onClick={() => setSelectedInvoiceOrder(order)}
+                                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/5 border border-white/10 hover:border-primary-gold hover:text-primary-gold font-montserrat text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all cursor-pointer text-xs"
+                                >
+                                  <Printer size={12} className="text-primary-gold" />
+                                  <span>Invoice Details</span>
+                                </button>
+                              </div>
                             </div>
                           ) : (
-                            <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-sm text-center text-rose-400 font-montserrat text-[10px] uppercase font-bold tracking-widest">
-                              This order has been cancelled
+                            <div className="space-y-4">
+                              <div className="p-3 bg-rose-500/10 border border-rose-500/20 rounded-sm text-center text-rose-400 font-montserrat text-[10px] uppercase font-bold tracking-widest">
+                                This order has been cancelled
+                              </div>
+                              <div className="flex justify-end pt-4 border-t border-white/5">
+                                <button
+                                  onClick={() => setSelectedInvoiceOrder(order)}
+                                  className="inline-flex items-center gap-1.5 px-4 py-2 bg-white/5 border border-white/10 hover:border-primary-gold hover:text-primary-gold font-montserrat text-[10px] uppercase font-bold tracking-widest rounded-sm transition-all cursor-pointer text-xs"
+                                >
+                                  <Printer size={12} className="text-primary-gold" />
+                                  <span>Invoice Details</span>
+                                </button>
+                              </div>
                             </div>
                           )}
 
@@ -793,6 +833,159 @@ export default function ProfilePage() {
           </div>
 
         </div>
+
+        {/* Invoice modal / Print canvas */}
+        <AnimatePresence>
+          {selectedInvoiceOrder && (
+            <div className="fixed inset-0 z-50 flex items-center justify-center p-4">
+              
+              {/* Backdrop */}
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 0.85 }}
+                exit={{ opacity: 0 }}
+                onClick={() => setSelectedInvoiceOrder(null)}
+                className="absolute inset-0 bg-luxury-black"
+              />
+
+              {/* Modal Box */}
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                className="relative w-full max-w-3xl bg-white text-black p-8 rounded-sm z-10 shadow-2xl overflow-y-auto max-h-[90vh]"
+              >
+                {/* Close Button */}
+                <button
+                  onClick={() => setSelectedInvoiceOrder(null)}
+                  className="absolute top-4 right-4 text-black/50 hover:text-rose-600 p-2 transition-colors cursor-pointer"
+                  aria-label="Close invoice popup"
+                >
+                  <X size={20} />
+                </button>
+
+                {/* Printable Invoice Sheet Area */}
+                <div id="invoice-print-area" className="space-y-8 p-4 bg-white text-black font-poppins">
+                  
+                  {/* Invoice Header */}
+                  <div className="flex justify-between items-start border-b-2 border-black pb-6 text-left">
+                    <div>
+                      <h1 className="font-playfair text-2xl font-black tracking-wide uppercase leading-none text-black">
+                        Sri Chakra Veeralakshmi
+                      </h1>
+                      <span className="font-cormorant text-xs font-bold tracking-widest text-black/75 block mt-1 uppercase">
+                        Jewellery Works
+                      </span>
+                      <p className="text-[10px] text-black/60 mt-4 leading-relaxed font-poppins">
+                        Beside Ramu Medicals, Main Road,<br />
+                        Alamuru, East Godavari, AP, 533315<br />
+                        Contact: +91 9948625356
+                      </p>
+                    </div>
+                    <div className="text-right">
+                      <h2 className="font-montserrat text-lg font-bold uppercase tracking-wider text-black">Retail Bill Invoice</h2>
+                      <span className="text-xs font-mono block mt-1">No: #{selectedInvoiceOrder.id.slice(0, 8).toUpperCase()}</span>
+                      <span className="text-[10px] text-black/60 block mt-2">Date: {new Date(selectedInvoiceOrder.createdAt).toLocaleDateString("en-IN")}</span>
+                    </div>
+                  </div>
+
+                  {/* Billing Addresses Grid */}
+                  <div className="grid grid-cols-2 gap-8 text-left text-xs font-poppins">
+                    <div>
+                      <strong className="block font-montserrat text-[10px] uppercase tracking-wider text-black/60 mb-2">Billed To:</strong>
+                      <p className="leading-relaxed font-semibold">{userData.name}</p>
+                      <p className="text-black/75 mt-0.5">{userData.email}</p>
+                      <p className="text-black/75">Phone: {userData.phone || selectedInvoiceOrder.address.phone}</p>
+                    </div>
+                    <div>
+                      <strong className="block font-montserrat text-[10px] uppercase tracking-wider text-black/60 mb-2">Shipped Address:</strong>
+                      <p className="leading-relaxed font-semibold">{selectedInvoiceOrder.address.name}</p>
+                      <p className="text-black/75 mt-0.5">
+                        {selectedInvoiceOrder.address.street},<br />
+                        {selectedInvoiceOrder.address.city}, {selectedInvoiceOrder.address.state} - {selectedInvoiceOrder.address.postalCode}
+                      </p>
+                    </div>
+                  </div>
+
+                  {/* Items Table */}
+                  <table className="w-full text-left text-xs font-poppins border-collapse mt-8">
+                    <thead>
+                      <tr className="border-b-2 border-black text-black/60 font-montserrat uppercase text-[9px] tracking-wider font-bold">
+                        <th className="py-2.5">Jewellery Description</th>
+                        <th className="py-2.5 text-center">Qty</th>
+                        <th className="py-2.5 text-right">Unit Weight</th>
+                        <th className="py-2.5 text-right">Spot Rate Used</th>
+                        <th className="py-2.5 text-right">Amount (Inc. Making & GST)</th>
+                      </tr>
+                    </thead>
+                    <tbody className="divide-y divide-black/10 text-black/90">
+                      {selectedInvoiceOrder.items.map(item => (
+                        <tr key={item.id} className="py-2">
+                          <td className="py-3.5 font-semibold text-left">{item.product.name}</td>
+                          <td className="py-3.5 text-center">{item.quantity}</td>
+                          <td className="py-3.5 text-right">{item.weightPerUnit}g</td>
+                          <td className="py-3.5 text-right">{formatCurrency(item.metalRateUsed)}/g</td>
+                          <td className="py-3.5 text-right font-semibold">{formatCurrency(item.pricePerUnit * item.quantity)}</td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+
+                  {/* Pricing Summary Block */}
+                  <div className="flex justify-end pt-4 border-t border-black/20">
+                    <div className="w-64 space-y-2.5 text-xs font-poppins text-left">
+                      <div className="flex justify-between text-black/70">
+                        <span>Metal Subtotal</span>
+                        <span>{formatCurrency(selectedInvoiceOrder.subtotal)}</span>
+                      </div>
+                      <div className="flex justify-between text-black/70">
+                        <span>Making charges</span>
+                        <span>{formatCurrency(selectedInvoiceOrder.makingCharges)}</span>
+                      </div>
+                      <div className="flex justify-between text-black/70">
+                        <span>GST (3%)</span>
+                        <span>{formatCurrency(selectedInvoiceOrder.gst)}</span>
+                      </div>
+                      <div className="flex justify-between text-black/70">
+                        <span>Insured Shipping</span>
+                        <span>{selectedInvoiceOrder.shipping === 0 ? "FREE" : formatCurrency(selectedInvoiceOrder.shipping)}</span>
+                      </div>
+                      <div className="flex justify-between text-sm font-bold text-black border-t-2 border-black pt-3">
+                        <span className="font-montserrat uppercase tracking-wider text-[11px]">Grand Total</span>
+                        <span>{formatCurrency(selectedInvoiceOrder.total)}</span>
+                      </div>
+                    </div>
+                  </div>
+
+                  {/* Invoice Footer note */}
+                  <div className="text-center text-[10px] text-black/40 pt-16 border-t border-black/10">
+                    Thank you for your trust and business. Under Vasabattula Srinivasu guidance, we guarantee purity. Hallmark certified.
+                  </div>
+
+                </div>
+
+                {/* Action buttons */}
+                <div className="flex justify-end gap-3 mt-8 border-t border-black/5 pt-5">
+                  <button
+                    onClick={printInvoice}
+                    className="flex items-center gap-1.5 px-6 py-2.5 bg-royal-burgundy text-primary-gold font-montserrat text-xs uppercase font-bold tracking-widest rounded-sm hover:scale-[1.01] transition-all cursor-pointer"
+                  >
+                    <Printer size={14} />
+                    <span>Download / Print PDF</span>
+                  </button>
+                  
+                  <button
+                    onClick={() => setSelectedInvoiceOrder(null)}
+                    className="px-6 py-2.5 bg-black/5 text-black/70 font-montserrat text-xs uppercase font-bold tracking-widest rounded-sm hover:bg-black/10 transition-all cursor-pointer"
+                  >
+                    Close
+                  </button>
+                </div>
+
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
 
       </div>
     </div>

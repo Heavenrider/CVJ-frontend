@@ -25,6 +25,18 @@ export async function POST(request: Request) {
     }
 
     const isDbConnected = await checkDbConnection();
+    let orderDetails = null;
+
+    if (isDbConnected) {
+      orderDetails = await db.order.findUnique({
+        where: { id: orderId }
+      });
+      if (!orderDetails) {
+        return NextResponse.json({ success: false, message: "Order not found" }, { status: 404 });
+      }
+    }
+
+    const orderTotal = orderDetails ? orderDetails.total : 0;
 
     // 1. Verify cryptographic signature from Razorpay (if keys aren't mock)
     const secret = process.env.RAZORPAY_KEY_SECRET || "mock_secret_key_54321";
@@ -48,6 +60,21 @@ export async function POST(request: Request) {
           where: { id: orderId },
           data: { paymentStatus: "FAILED" }
         });
+
+        // Log the failed payment in database
+        try {
+          await db.payment.create({
+            data: {
+              orderId,
+              method: "RAZORPAY",
+              status: "FAILED",
+              amount: orderTotal,
+              transactionId: razorpayPaymentId
+            }
+          });
+        } catch (paymentErr) {
+          console.warn("Failed to log failed payment:", paymentErr);
+        }
       }
       return NextResponse.json({ success: false, message: "Payment signature verification failed" }, { status: 400 });
     }
@@ -75,11 +102,7 @@ export async function POST(request: Request) {
             orderId,
             method: "RAZORPAY",
             status: "COMPLETED",
-            amount: cartItems.reduce((acc, item) => {
-              const rate22k = 6830;
-              const totalItemCost = (rate22k * item.product.weight + item.product.makingChargesPerGram * item.product.weight) * 1.03 * item.quantity;
-              return acc + totalItemCost;
-            }, 0),
+            amount: orderTotal,
             transactionId: razorpayPaymentId
           }
         }),

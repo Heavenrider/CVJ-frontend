@@ -63,6 +63,28 @@ export async function PUT(request: Request) {
       data: { status, ...extraUpdates },
     });
 
+    // Create a Payment log for COD orders when marked DELIVERED
+    if (status === "DELIVERED" && updatedOrder.paymentMethod === "COD") {
+      try {
+        const existingPayment = await db.payment.findFirst({
+          where: { orderId: orderId }
+        });
+        if (!existingPayment) {
+          await db.payment.create({
+            data: {
+              orderId,
+              method: "COD",
+              status: "COMPLETED",
+              amount: updatedOrder.total,
+              transactionId: `cod_${orderId.slice(0, 8)}_${Date.now()}`
+            }
+          });
+        }
+      } catch (payLogErr) {
+        console.warn("Failed to create Payment log for delivered COD order:", payLogErr);
+      }
+    }
+
     return NextResponse.json({ success: true, message: "Order status updated successfully", order: updatedOrder });
   } catch (error) {
     console.error("Admin orders PUT error:", error);

@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { MapPin, Coins, ShieldCheck, CheckCircle2, Loader2, ArrowRight, CreditCard, ChevronRight, Plus, ArrowLeft } from "lucide-react";
+import { MapPin, Coins, ShieldCheck, CheckCircle2, Loader2, ArrowRight, CreditCard, ChevronRight, Plus, ArrowLeft, AlertTriangle } from "lucide-react";
 import { motion } from "framer-motion";
 import Link from "next/link";
 
@@ -36,7 +36,7 @@ interface RatesData {
 }
 
 export default function CheckoutPage() {
-  const [step, setStep] = useState<"address" | "review" | "success">("address");
+  const [step, setStep] = useState<"address" | "review" | "success" | "failure">("address");
   const [addresses, setAddresses] = useState<Address[]>([]);
   const [selectedAddressId, setSelectedAddressId] = useState<string>("");
   const [cartItems, setCartItems] = useState<CartItem[]>([]);
@@ -237,12 +237,15 @@ export default function CheckoutPage() {
               const verifyData = await verifyRes.json();
               if (verifyRes.ok && verifyData.success) {
                 setPlacedOrderId(data.orderId);
+                window.dispatchEvent(new Event("cart-updated"));
                 setStep("success");
               } else {
-                setError("Payment signature verification failed. Please contact support.");
+                setError(verifyData.message || "Payment signature verification failed. Please contact support.");
+                setStep("failure");
               }
             } catch (err) {
               setError("Payment verification timed out. Please contact us.");
+              setStep("failure");
             } finally {
               setPlacingOrder(false);
             }
@@ -257,6 +260,8 @@ export default function CheckoutPage() {
           modal: {
             ondismiss: function () {
               setPlacingOrder(false);
+              setError("Payment checkout window was closed.");
+              setStep("failure");
             }
           }
         };
@@ -266,6 +271,7 @@ export default function CheckoutPage() {
       } else {
         // 2. COD placed successfully
         setPlacedOrderId(data.orderId);
+        window.dispatchEvent(new Event("cart-updated"));
         setStep("success");
         setPlacingOrder(false);
       }
@@ -666,6 +672,49 @@ export default function CheckoutPage() {
               </Link>
             </div>
 
+          </motion.div>
+        )}
+
+        {/* STEP 4: Order Payment Failure */}
+        {step === "failure" && (
+          <motion.div
+            initial={{ opacity: 0, scale: 0.95 }}
+            animate={{ opacity: 1, scale: 1 }}
+            className="max-w-xl mx-auto bg-[#121212] border border-rose-500/25 p-8 sm:p-12 rounded-sm text-center space-y-6 shadow-2xl"
+          >
+            <div className="w-16 h-16 bg-rose-500/10 border border-rose-500/25 rounded-full flex items-center justify-center mx-auto text-rose-400">
+              <AlertTriangle size={32} />
+            </div>
+
+            <span className="font-cormorant text-base italic tracking-widest text-rose-400 font-bold uppercase block">
+              Payment Declined
+            </span>
+
+            <h3 className="font-playfair text-2xl sm:text-3xl font-bold tracking-wide text-ivory-white">
+              Transaction Unsuccessful
+            </h3>
+
+            <p className="font-poppins text-xs sm:text-sm text-ivory-white/70 leading-relaxed max-w-sm mx-auto">
+              {error || "We could not authorize your payment. Please verify your details or select another payment option."}
+            </p>
+
+            <div className="pt-6 border-t border-white/5 flex flex-col sm:flex-row gap-4 justify-center">
+              <button
+                onClick={() => {
+                  setStep("review");
+                  setError("");
+                }}
+                className="px-6 py-3 border border-primary-gold/40 hover:border-primary-gold text-primary-gold font-montserrat text-xs uppercase font-bold tracking-widest rounded-sm transition-all text-center cursor-pointer"
+              >
+                Retry Payment
+              </button>
+              <Link
+                href="/cart"
+                className="px-6 py-3 bg-white/5 text-ivory-white/70 font-montserrat text-xs uppercase font-bold tracking-widest rounded-sm hover:bg-white/10 transition-colors text-center"
+              >
+                Return to Bag
+              </Link>
+            </div>
           </motion.div>
         )}
 
