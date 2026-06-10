@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
-import { User, MapPin, Package, Heart, LogOut, Loader2, Plus, Trash2, Calendar, ShoppingCart, ShieldCheck, Printer, X } from "lucide-react";
+import { User, MapPin, Package, Heart, LogOut, Loader2, Plus, Trash2, Calendar, ShoppingCart, ShieldCheck, Printer, X, Home } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import Link from "next/link";
 import Image from "next/image";
@@ -332,6 +332,18 @@ export default function ProfilePage() {
       <div className="absolute top-0 right-0 w-96 h-96 bg-royal-burgundy/10 rounded-full blur-[100px] pointer-events-none" />
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 relative z-10">
+        
+        {/* Top Header Bar with Go to Home */}
+        <div className="flex justify-between items-center mb-8 border-b border-white/5 pb-4">
+          <h2 className="font-playfair text-2xl font-bold tracking-wide text-ivory-white">Client Profile</h2>
+          <Link
+            href="/"
+            className="flex items-center gap-2 px-4 py-2 bg-royal-burgundy border border-primary-gold/30 hover:border-primary-gold text-primary-gold font-montserrat text-xs uppercase font-bold tracking-widest rounded-sm transition-all"
+          >
+            <Home size={13} />
+            <span>Go to Home</span>
+          </Link>
+        </div>
         
         {/* Profile Grid */}
         <div className="grid grid-cols-1 lg:grid-cols-12 gap-8 items-start">
