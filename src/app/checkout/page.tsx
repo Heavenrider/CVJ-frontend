@@ -213,6 +213,39 @@ export default function CheckoutPage() {
 
       // 1. If Razorpay checkout required
       if (data.paymentRequired && data.razorpayOrderId) {
+        // If it is a mock payment key or order, bypass the real Razorpay modal
+        if (data.keyId === "rzp_test_mock_id_12345" || data.razorpayOrderId.startsWith("rzp_mock_order_")) {
+          setTimeout(async () => {
+            try {
+              const verifyRes = await fetch("/api/checkout/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({
+                  orderId: data.orderId,
+                  razorpayOrderId: data.razorpayOrderId,
+                  razorpayPaymentId: "rzp_mock_pay_" + Math.random().toString(36).substring(2, 9),
+                  razorpaySignature: "mock_signature_abc123",
+                })
+              });
+              const verifyData = await verifyRes.json();
+              if (verifyRes.ok && verifyData.success) {
+                setPlacedOrderId(data.orderId);
+                window.dispatchEvent(new Event("cart-updated"));
+                setStep("success");
+              } else {
+                setError(verifyData.message || "Payment signature verification failed. Please contact support.");
+                setStep("failure");
+              }
+            } catch (err) {
+              setError("Payment verification timed out. Please contact us.");
+              setStep("failure");
+            } finally {
+              setPlacingOrder(false);
+            }
+          }, 1500);
+          return;
+        }
+
         const options = {
           key: data.keyId,
           amount: data.amount,
