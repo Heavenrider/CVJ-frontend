@@ -88,7 +88,7 @@ async function main() {
       makingChargesPerGram: 380,
       stockQuantity: 5,
       categorySlug: "gold-necklaces",
-      imageType: "necklace",
+      imageUrl: "/assets/kasu-choker.png",
     },
     {
       name: "Peacock Kada Bangle Set",
@@ -99,7 +99,7 @@ async function main() {
       makingChargesPerGram: 350,
       stockQuantity: 3,
       categorySlug: "gold-bangles",
-      imageType: "bangles",
+      imageUrl: "/assets/peacock-kada.png",
     },
     {
       name: "Maharani Polki Haram",
@@ -110,7 +110,7 @@ async function main() {
       makingChargesPerGram: 450,
       stockQuantity: 2,
       categorySlug: "gold-bridal-sets",
-      imageType: "necklace",
+      imageUrl: "/assets/polki-haram.png",
     },
     {
       name: "Royal Diamond-Cut Ladies Ring",
@@ -121,7 +121,7 @@ async function main() {
       makingChargesPerGram: 480,
       stockQuantity: 10,
       categorySlug: "gold-rings",
-      imageType: "ring",
+      imageUrl: "/assets/gold-ring.png",
     },
     {
       name: "Classic Kemp Jhumka Earrings",
@@ -132,7 +132,7 @@ async function main() {
       makingChargesPerGram: 400,
       stockQuantity: 7,
       categorySlug: "gold-earrings",
-      imageType: "earrings",
+      imageUrl: "/assets/kemp-jhumka.png",
     },
     {
       name: "Traditional Nakshi Pooja Diya",
@@ -143,7 +143,7 @@ async function main() {
       makingChargesPerGram: 18,
       stockQuantity: 15,
       categorySlug: "silver-pooja-items",
-      imageType: "pooja",
+      imageUrl: "/assets/pooja-diya.png",
     },
     {
       name: "Designer Floral Ghungroo Anklet",
@@ -154,7 +154,7 @@ async function main() {
       makingChargesPerGram: 25,
       stockQuantity: 8,
       categorySlug: "silver-anklets",
-      imageType: "anklet",
+      imageUrl: "/assets/silver-anklet.png",
     },
     {
       name: "Blessing Lakshmi Ganesha Idols",
@@ -165,7 +165,7 @@ async function main() {
       makingChargesPerGram: 30,
       stockQuantity: 4,
       categorySlug: "silver-idols",
-      imageType: "idol",
+      imageUrl: "/assets/lakshmi-ganesha.png",
     },
   ];
 
@@ -180,6 +180,7 @@ async function main() {
           purity: prod.purity,
           makingChargesPerGram: prod.makingChargesPerGram,
           stockQuantity: prod.stockQuantity,
+          images: [prod.imageUrl], // Ensure images get updated
         },
         create: {
           id: `seed-${prod.name.toLowerCase().replace(/\s+/g, "-")}`,
@@ -190,7 +191,7 @@ async function main() {
           metalType: prod.metalType,
           makingChargesPerGram: prod.makingChargesPerGram,
           stockQuantity: prod.stockQuantity,
-          images: [`/assets/silhouette-${prod.imageType}.jpg`], // path mapping or dynamic svg matching
+          images: [prod.imageUrl],
           categoryId,
           availability: true,
         },

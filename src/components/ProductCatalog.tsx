@@ -192,6 +192,25 @@ const MOCK_PRODUCTS: Product[] = [
   }
 ];
 
+function ProductImage({ product }: { product: Product }) {
+  const [imageError, setImageError] = useState(false);
+  const imageUrl = product.images && product.images[0];
+  const isPlaceholder = !imageUrl || imageUrl.includes("silhouette");
+
+  if (isPlaceholder || imageError) {
+    return <JewelleryIcon type={product.name.toLowerCase()} />;
+  }
+
+  return (
+    <img
+      src={imageUrl}
+      alt={product.name}
+      className="max-w-full max-h-full object-contain transition-transform duration-500 group-hover:scale-105"
+      onError={() => setImageError(true)}
+    />
+  );
+}
+
 export default function ProductCatalog({ rates, onSelectProduct }: ProductCatalogProps) {
   const [products, setProducts] = useState<Product[]>([]);
   const [loading, setLoading] = useState(true);
@@ -415,9 +434,8 @@ export default function ProductCatalog({ rates, onSelectProduct }: ProductCatalo
                         {product.purity}
                       </div>
 
-                      <div className="relative z-10 transition-transform duration-500 group-hover:scale-105 flex items-center justify-center">
-                        {/* Render SVG matching custom seed strings */}
-                        <JewelleryIcon type={product.name.toLowerCase()} />
+                      <div className="relative z-10 w-full h-full flex items-center justify-center overflow-hidden">
+                        <ProductImage product={product} />
                       </div>
 
                       <div className="absolute bottom-4 left-4 flex items-center gap-1.5 text-ivory-white/40 text-[10px] font-poppins">

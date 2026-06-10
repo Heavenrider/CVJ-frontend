@@ -18,6 +18,7 @@ interface ProductDetailModalProps {
 
 export default function ProductDetailModal({ product, computedPrice, rates, onClose }: ProductDetailModalProps) {
   const [zoomStyle, setZoomStyle] = useState({ transformOrigin: "center", transform: "scale(1)" });
+  const [imageError, setImageError] = useState(false);
   const containerRef = useRef<HTMLDivElement>(null);
 
   // Default rates for fallback calculations
@@ -30,6 +31,7 @@ export default function ProductDetailModal({ product, computedPrice, rates, onCl
     // Prevent scrolling behind modal
     if (product) {
       document.body.style.overflow = "hidden";
+      setImageError(false);
     } else {
       document.body.style.overflow = "unset";
     }
@@ -157,6 +159,36 @@ Please contact me back. Thank you!`;
     );
   };
 
+  const imageUrl = product.images && product.images[0];
+  const isPlaceholder = !imageUrl || imageUrl.includes("silhouette");
+
+  const renderProductImage = () => {
+    if (isPlaceholder || imageError) {
+      return renderSVGImage();
+    }
+    return (
+      <div 
+        className="w-full h-full flex items-center justify-center p-8 bg-gradient-to-b from-[#1b1b1b] to-[#121212] overflow-hidden cursor-zoom-in relative group"
+        onMouseMove={handleMouseMove}
+        onMouseLeave={handleMouseLeave}
+      >
+        <motion.img
+          src={imageUrl}
+          alt={product.name}
+          style={zoomStyle}
+          transition={{ type: "tween", duration: 0.1 }}
+          className="max-w-full max-h-full object-contain"
+          onError={() => setImageError(true)}
+        />
+        
+        {/* Helper overlay */}
+        <div className="absolute bottom-4 left-4 right-4 bg-luxury-black/70 py-1 px-3 rounded-md text-[10px] text-ivory-white/60 text-center pointer-events-none opacity-100 group-hover:opacity-0 transition-opacity">
+          Hover over image to zoom
+        </div>
+      </div>
+    );
+  };
+
   return (
     <AnimatePresence>
       <div className="fixed inset-0 z-50 flex items-center justify-center p-4 sm:p-6 md:p-10">
@@ -190,7 +222,7 @@ Please contact me back. Thank you!`;
 
           {/* Left Column - Product Image (5 cols) */}
           <div className="col-span-5 h-[300px] md:h-full min-h-[300px] border-b md:border-b-0 md:border-r border-white/5 relative">
-            {renderSVGImage()}
+            {renderProductImage()}
           </div>
 
           {/* Right Column - Spec details (7 cols) */}
